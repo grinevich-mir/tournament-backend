@@ -1,0 +1,64 @@
+service:
+  name: system-payment
+  enabled: ${self:custom.brand.features.payment, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  timeout: 30
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+  enabled:
+    dev: true
+    prod: false
+
+functions:
+  onExpiredCard:
+    handler: src/handlers.onExpiredCard
+    timeout: 60
+    reservedConcurrency: 5
+    events:
+      - schedule: cron(0 6 * * ? *)
+    environment:
+      FUNCTION: onExpiredCard
+    enabled: ${self:custom.enabled.${self:provider.stage}}
+
+  onExpiringCard:
+    handler: src/handlers.onExpiringCard
+    timeout: 600
+    reservedConcurrency: 5
+    events:
+      - schedule: cron(0 6 * * ? *)
+    environment:
+      FUNCTION: onExpiringCard
+    enabled: ${self:custom.enabled.${self:provider.stage}}
+
+  syncPayPalPayment:
+    handler: src/handlers.syncPayPalPayment
+    timeout: 600
+    environment:
+      FUNCTION: syncPayPalPayment

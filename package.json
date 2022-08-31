@@ -1,0 +1,63 @@
+{
+  "name": "backend",
+  "version": "1.0.3",
+  "description": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "ci": "yarn --frozen-lockfile",
+    "bootstrap": "yarn",
+    "build": "lerna run build",
+    "deploy": "lernax deploy",
+    "remove": "lernax remove",
+    "swagger": "lernax swagger",
+    "circle-gen": "circle-gen",
+    "test": "lerna run test",
+    "lint": "tslint -c tslint.json '**/*.ts' --project tsconfig.base.json",
+    "lint-fix" : "tslint -c tslint.json '**/*.ts' --project tsconfig.base.json --fix",
+    "test-helper": "test-helper",
+    "rebuild": "git clean -xdf && yarn install && yarn build"
+  },
+  "author": "App Tech Development Ltd",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.ts": ["tslint -c tslint.json --project tsconfig.base.json"]
+  },
+  "devDependencies": {
+    "@tools/circle-gen": "./tools/circle-gen",
+    "@tools/lernax": "./tools/lernax",
+    "@tools/test-helper": "./tools/test-helper",
+    "@types/webpack-env": "^1.14.0",
+    "copy-webpack-plugin": "^6.0.1",
+    "html-loader": "^0.5.5",
+    "husky": "^4.2.5",
+    "lerna": "^3.20.2",
+    "lint-staged": "^10.2.8",
+    "lodash": "^4.17.15",
+    "mocha": "^7.2.0",
+    "source-map-loader": "^0.2.4",
+    "supports-color": "^7.0.0",
+    "tslint": "^6.1.2",
+    "tslint-no-unused-expression-chai": "^0.1.4",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1",
+    "webpack-filter-warnings-plugin": "^1.2.1",
+    "yarn": "^1.17.3"
+  },
+  "workspaces": {
+    "packages": [
+      "platform",
+      "system/**/*",
+      "services/**/*",
+      "containers/**/*",
+      "testing/**/*",
+      "tools/**/*",
+      "serverless/plugins/**/*",
+      "test"
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+service: service-docs-${self:custom.api}
+
+plugins:
+  - serverless-plugin-scripts
+  - serverless-webpack
+  - serverless-offline
+  - serverless-domain-manager
+
+package:
+  include:
+    - "specs/**/*"
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  environment:
+    STAGE: ${self:provider.stage}
+    DOMAIN: ${self:custom.common.domain}
+    CLIENT_ID: ${self:custom.brand.stages.${self:provider.stage}.skins.${opt:brand}.cognito.clientId}
+    ADMIN_CLIENT_ID: ${self:custom.brand.stages.${self:provider.stage}.admin.cognito.clientId}
+    API: ${self:custom.api}
+    SUBDOMAIN: ${self:custom.subDomain.${self:custom.api}}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+
+custom:
+  api: ${opt:api}
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  subDomain:
+    client: api
+    management: mgnt
+  customDomain:
+    basePath: docs
+    domainName: ${self:custom.subDomain.${self:custom.api}}.${self:custom.common.domain}
+  webpack:
+      includeModules: true
+  scripts:
+    hooks:
+      'before:offline:start': node ./scripts/generatespecs.js ${opt:brand} ${self:provider.stage} ${self:custom.api} ${self:custom.customDomain.domainName} ${self:custom.common.defaultRegion} ${env:PWD}/specs
+      'package:initialize': node ./scripts/generatespecs.js ${opt:brand} ${self:provider.stage} ${self:custom.api} ${self:custom.customDomain.domainName} ${self:custom.common.defaultRegion} ${env:PWD}/specs
+
+functions:
+  app:
+    handler: handler.app
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          authorizer:
+            name: authorizer
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization
+            type: request
+      - http:
+          path: /
+          method: ANY
+          authorizer:
+            name: authorizer
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization
+            type: request
+  authorizer:
+    handler: authorizer.handler
+
+resources:
+  Resources:
+    GatewayResponse:
+      Type: "AWS::ApiGateway::GatewayResponse"
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.WWW-Authenticate: "'Basic'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: "ApiGatewayRestApi"
+        StatusCode: "401"

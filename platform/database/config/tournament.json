@@ -1,0 +1,93 @@
+{
+    "local": {
+        "connections": {
+            "global": {
+                "database": "global",
+                "host": "localhost",
+                "username": "master",
+                "events": [],
+                "orm": {
+                    "entities": ["src/**/entities/*.entity.ts"],
+                    "migrationsDir": "database/migrations/global",
+                    "migrations": ["database/migrations/global/*.ts"],
+                    "seedsDir": "database/seeds/global",
+                    "seeds": ["database/seeds/global/*.ts", "database/seeds/global/tournament/*.ts"]
+                }
+            }
+        }
+    },
+    "dev": {
+        "ssh": {
+            "host": "bastion.tournament.dev.tgaming.io",
+            "keyFile": "~/.ssh/id_bastian",
+            "fromPort": "3307",
+            "toPort": "3306"
+        },
+        "connections": {
+            "global": {
+                "database": "global",
+                "host": "us-primary-cluster.cluster-cg7bo8sl4j9s.us-east-1.rds.amazonaws.com",
+                "username": "master",
+                "ssmPasswordKey": "/dev/rds/global/password",
+                "events": [],
+                "orm": {
+                    "entities": ["src/**/entities/*.entity.ts"],
+                    "migrationsDir": "database/migrations/global",
+                    "migrations": ["database/migrations/global/*.ts"],
+                    "seedsDir": "database/seeds/global",
+                    "seeds": ["database/seeds/global/*.ts", "database/seeds/global/tournament/*.ts"]
+                },
+                "userSync": {
+                    "regions": ["us-east-1"],
+                    "users": {
+                        "api_user": {
+                            "permissions": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+                            "ssmPasswordKey": "/dev/rds/global/api_user/password"
+                        },
+                        "engine_user": {
+                            "permissions": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+                            "ssmPasswordKey": "/dev/rds/global/engine_user/password"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "prod": {
+        "ssh": {
+            "host": "bastion.tournament.prod.tgaming.io",
+            "keyFile": "~/.ssh/id_bastian",
+            "fromPort": "3307",
+            "toPort": "3306"
+        },
+        "connections": {
+            "global": {
+                "database": "global",
+                "host": "us-primary-cluster.cluster-cmpjrwjvjrdw.us-east-1.rds.amazonaws.com",
+                "username": "master",
+                "ssmPasswordKey": "/prod/rds/global/password",
+                "events": [],
+                "orm": {
+                    "entities": ["src/**/entities/*.entity.ts"],
+                    "migrationsDir": "database/migrations/global",
+                    "migrations": ["database/migrations/global/*.ts"],
+                    "seedsDir": "database/seeds/global",
+                    "seeds": ["database/seeds/global/*.ts"]
+                },
+                "userSync": {
+                    "regions": ["us-east-1"],
+                    "users": {
+                        "api_user": {
+                            "permissions": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+                            "ssmPasswordKey": "/prod/rds/global/api_user/password"
+                        },
+                        "engine_user": {
+                            "permissions": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+                            "ssmPasswordKey": "/prod/rds/global/engine_user/password"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

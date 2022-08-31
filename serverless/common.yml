@@ -1,0 +1,33 @@
+brandId: ${opt:brand}
+domain: ${self:custom.brand.stages.${self:provider.stage}.domain}
+aws: ${self:custom.brand.stages.${self:provider.stage}.aws}
+defaultRegion: ${self:custom.brand.regions.primary}
+logRetention: 30
+admin: ${self:custom.brand.stages.${self:provider.stage}.admin}
+
+provider:
+  memorySize: 1024
+  usagePlan:
+    quota:
+      limit: 5000
+      offset: 2
+      period: MONTH
+    throttle:
+      burstLimit: 200
+      rateLimit: 100
+  vpc:
+    securityGroupIds:
+      - ${ssm:/${self:provider.stage}/vpc/${self:provider.region}/securityGroup~true}
+    subnetIds:
+      - ${ssm:/${self:provider.stage}/vpc/${self:provider.region}/subnetId1~true}
+      - ${ssm:/${self:provider.stage}/vpc/${self:provider.region}/subnetId2~true}
+      - ${ssm:/${self:provider.stage}/vpc/${self:provider.region}/subnetId3~true}
+
+warmup:
+  enabled:
+    - prod
+    - dev
+  name: ${self:service.name}-${self:provider.stage}-warmup
+  payload:
+    source: "WARMUP"
+  prewarm: ${self:custom.warmupOptions.prewarm, "true"}

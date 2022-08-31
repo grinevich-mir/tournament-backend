@@ -1,0 +1,64 @@
+service:
+  name: system-voluum
+  enabled: ${self:custom.brand.features.voluum, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+  - serverless-step-functions
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  timeout: 30
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  voluumOnPaymentStatusChange:
+    handler: src/handlers.onPaymentStatusChange
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Payment:StatusChanged
+            To:
+              - Successful
+    timeout: 600
+    environment:
+      FUNCTION: onPaymentStatusChange
+
+  onUserCreated:
+    handler: src/handlers.onUserCreated
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:Created
+    timeout: 600
+    environment:
+      FUNCTION: onUserCreated

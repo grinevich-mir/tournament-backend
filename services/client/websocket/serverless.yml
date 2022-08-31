@@ -1,0 +1,91 @@
+service:
+  name: service-client-websocket
+  enabled: ${self:custom.brand.features.websockets, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  #- serverless-domain-manager
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../../serverless/iam-role.yml):statements}
+  environment: ${file(../../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+  websocketsApiName: ${self:provider.stage}-${self:service}
+  websocketsApiRouteSelectionExpression: $request.body.action
+
+custom:
+  brand: ${file(../../../brands.json):${opt:brand}}
+  common: ${file(../../../serverless/common.yml)}
+  customDomain:
+    basePath: /
+    domainName: ws.${self:custom.common.domain}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  connectionHandler:
+    handler: src/handlers.connectionHandler
+    timeout: 10
+    events:
+      - websocket: $connect
+      - websocket: $disconnect
+    environment:
+      FUNCTION: connectionHandler
+
+  defaultHandler:
+    handler: src/handlers.defaultHandler
+    events:
+      - websocket: $default
+    environment:
+      FUNCTION: defaultHandler
+
+  subscriptionHandler:
+    handler: src/handlers.subscriptionHandler
+    timeout: 10
+    events:
+      - websocket: subscribe
+      - websocket: unsubscribe
+    environment:
+      FUNCTION: subscriptionHandler
+
+  authHandler:
+    handler: src/handlers.authHandler
+    timeout: 10
+    events:
+      - websocket: login
+      - websocket: logout
+    environment:
+      FUNCTION: authHandler
+
+  messageHandler:
+    handler: src/handlers.messageHandler
+    timeout: 10
+    events:
+      - sns: websocket
+    environment:
+      FUNCTION: messageHandler
+
+  onUserLevelChanged:
+    handler: src/handlers.onUserLevelChanged
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          filterPolicy:
+            EventType:
+              - User:LevelChanged
+    environment:
+      FUNCTION: onUserLevelChanged

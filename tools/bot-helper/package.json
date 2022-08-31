@@ -1,0 +1,24 @@
+{
+  "name": "@tools/bot-helper",
+  "version": "1.0.0",
+  "description": "Helps with bots",
+  "main": "cli.js",
+  "bin": {
+    "bot-helper": "cli.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tools/common": "^1.0.0",
+    "aws-sdk": "^2.711.0",
+    "batch-promises": "^0.0.3",
+    "colog": "^1.0.4",
+    "commander": "^4.1.0",
+    "find-up": "^4.1.0",
+    "load-json-file": "^6.2.0",
+    "lodash": "^4.17.15",
+    "mkdirp": "^0.5.1",
+    "ora": "^4.0.3"
+  },
+  "devDependencies": {}
+}

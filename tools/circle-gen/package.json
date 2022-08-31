@@ -1,0 +1,19 @@
+{
+  "name": "@tools/circle-gen",
+  "version": "1.0.0",
+  "main": "cli.js",
+  "author": "Chris Kitch",
+  "license": "MIT",
+  "private": true,
+  "bin": {
+    "circle-gen": "./cli.js"
+  },
+  "dependencies": {
+    "@tools/common": "^1.0.0",
+    "find-up": "^4.1.0",
+    "handlebars": "^4.7.3",
+    "handlebars-delimiters": "^1.0.0",
+    "minimatch": "^3.0.4",
+    "slugify": "^1.4.0"
+  }
+}

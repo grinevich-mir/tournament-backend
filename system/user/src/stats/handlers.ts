@@ -1,0 +1,1 @@
+export * from './handlers/on-tournament-entered.handler';

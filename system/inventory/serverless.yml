@@ -1,0 +1,49 @@
+service:
+  name: system-inventory
+  enabled: ${self:custom.brand.features.inventory, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  timeout: 30
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  onUserLevelChanged:
+    handler: src/handlers.onUserLevelChanged
+    timeout: 60
+    reservedConcurrency: 5
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:LevelChanged
+    environment:
+      FUNCTION: onUserLevelChanged

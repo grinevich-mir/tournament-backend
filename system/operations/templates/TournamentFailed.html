@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+    <body>
+        <h2>Tournament {{tournament.id}} Failed ({{env.stage}})</h2>
+        <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+            <tr>
+                <th style="text-align: left;">ID</th>
+                <td>{{tournament.id}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Name</th>
+                <td>{{tournament.name}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Player Count</th>
+                <td>{{tournament.playerCount}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Start Time</th>
+                <td>{{tournament.startTime}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">End Time</th>
+                <td>{{tournament.endTime}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Complete Time</th>
+                <td>{{tournament.completeTime}}</td>
+            </tr>
+        </table>
+        <hr/>
+</html>

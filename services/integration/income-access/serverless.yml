@@ -1,0 +1,71 @@
+service:
+  name: service-integration-income-access
+  enabled: ${self:custom.brand.integrations.incomeAccess, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-domain-manager
+  - serverless-offline
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../../serverless/iam-role.yml):statements}
+  environment: ${file(../../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+  warmup: ${self:custom.common.warmup}
+  apiKeys:
+    - income-access
+  # resourcePolicy:
+  #   - Effect: Allow
+  #     Principal: "*"
+  #     Action: execute-api:Invoke
+  #     Resource:
+  #       - execute-api:/*/*/income-access/*
+  #     Condition:
+  #       IpAddress:
+  #         aws:SourceIp:
+  #           - 91.92.196.0/24
+  #           - 91.92.196.222
+  #           - 209.167.11.4
+
+custom:
+  brand: ${file(../../../brands.json):${opt:brand}}
+  common: ${file(../../../serverless/common.yml)}
+  customDomain:
+    basePath: ia
+    domainName: integrations.${self:custom.common.domain}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  getAccounts:
+    handler: src/handlers.getAccounts
+    events:
+      - http:
+          path: accounts
+          method: POST
+          integration: LAMBDA-PROXY
+          private: true
+
+  getSales:
+    handler: src/handlers.getSales
+    events:
+      - http:
+          path: sales
+          method: POST
+          integration: LAMBDA-PROXY
+          private: true

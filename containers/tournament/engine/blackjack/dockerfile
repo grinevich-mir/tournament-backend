@@ -1,0 +1,4 @@
+FROM node:14-alpine
+WORKDIR /usr/app
+COPY dist .
+CMD [ "node", "/usr/app/main.js" ]

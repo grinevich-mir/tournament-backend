@@ -1,0 +1,40 @@
+{
+  "@feature": "promo",
+  "name": "@tcom/service-client-promo",
+  "version": "1.0.0",
+  "description": "",
+  "license": "UNLICENSED",
+  "author": "App Tech Development Ltd",
+  "scripts": {
+    "build": "yarn routes && tsc -b",
+    "clean": "rm -rf .build & rm -rf node_modules & rm -rf .serverless & rm -f package-lock.json",
+    "deploy": "sls deploy",
+    "remove": "sls remove",
+    "package": "sls package",
+    "routes": "tsoa routes",
+    "swagger": "tsoa spec",
+    "test": "run-tests"
+  },
+  "dependencies": {
+    "@tcom/platform": "^1.0.0",
+    "express": "^4.17.1",
+    "serverless-http": "^2.3.1",
+    "tsoa": "3.0.8"
+  },
+  "devDependencies": {
+    "@tcom/test": "^1.0.0",
+    "@types/express": "^4.17.1",
+    "serverless": "^1.65.0",
+    "serverless-api-compression": "^1.0.1",
+    "serverless-domain-manager": "^3.3.1",
+    "serverless-offline": "^5.10.1",
+    "serverless-plugin-enabled": "^1.0.0",
+    "serverless-plugin-scripts": "^1.0.2",
+    "serverless-plugin-warmup": "^4.8.0",
+    "serverless-webpack": "^5.3.1",
+    "ts-loader": "^7.0.2",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1",
+    "webpack-filter-warnings-plugin": "^1.2.1"
+  }
+}

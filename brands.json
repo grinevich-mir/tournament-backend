@@ -1,0 +1,88 @@
+{
+    "tournament": {
+        "name": "Tournament",
+        "regions": {
+            "primary": "us-east-1"
+        },
+        "skins": {
+            "tournament": {
+                "name": "Tournament"
+            }
+        },
+        "stages": {
+            "local": {
+                "domain": "localhost:10000",
+                "aws": {
+                    "accountId": "none",
+                    "profile": "none"
+                },
+                "skins": {
+                    "tournament": {
+                        "domain": "localhost:4200",
+                        "cognito": {
+                            "userPoolId": "waffles",
+                            "clientId": "waffles"
+                        }
+                    }
+                }
+            },
+            "dev": {
+                "domain": "tournament.dev.tgaming.io",
+                "aws": {
+                    "accountId": 781946908492,
+                    "profile": "platform-tournament-dev"
+                },
+                "admin": {
+                    "cognito": {
+                        "userPoolId": "us-east-1_6tcee5NCe",
+                        "clientId": "1m2fcr9rqu1gbi9ij76u17fco0"
+                    }
+                },
+                "skins": {
+                    "tournament": {
+                        "domain": "dev.tournament.com",
+                        "cognito": {
+                            "userPoolId": "us-east-1_YxF3OxnWf",
+                            "clientId": "3povaaneldiekt4jqcm00aa10v"
+                        }
+                    }
+                }
+            },
+            "prod": {
+                "domain": "tournament.prod.tgaming.io",
+                "aws": {
+                    "accountId": 585323481428,
+                    "profile": "platform-tournament-prod"
+                },
+                "admin": {
+                    "cognito": {
+                        "userPoolId": "us-east-1_fCLX0qPBA",
+                        "clientId": "1jaa8sa39rh8skgkpebk6ieev8"
+                    }
+                },
+                "skins": {
+                    "tournament": {
+                        "domain": "tournament.com",
+                        "cognito": {
+                            "userPoolId": "us-east-1_vBMqrHcAx",
+                            "clientId": "s7hb052nkofvfqrtceqj0agqd"
+                        }
+                    }
+                }
+            }
+        },
+        "features": {
+            "promo": true,
+            "chat": true,
+            "tournaments": true,
+            "upgrades": true,
+            "subscriptions": true
+        },
+        "integrations": {
+            "hilo": true,
+            "lemverify": true,
+            "tambola": true,
+            "revolver": true
+        }
+    }
+}

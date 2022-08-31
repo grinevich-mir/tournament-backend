@@ -1,0 +1,1 @@
+export const SESSION_EXPIRE_MINS = 15;

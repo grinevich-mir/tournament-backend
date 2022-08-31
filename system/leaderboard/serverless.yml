@@ -1,0 +1,94 @@
+service:
+  name: system-leaderboard
+  enabled: ${self:custom.brand.features.leaderboards, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  awardPrizes:
+    handler: src/handlers.awardPrizes
+    reservedConcurrency: 10
+    timeout: 60
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [LeaderboardPrizeSQSQueue, Arn]
+          batchSize: 10
+    environment:
+      FUNCTION: awardPrizes
+
+  schedule:
+    handler: src/handlers.schedule
+    timeout: 60
+    events:
+      - schedule: cron(0/10 * * * ? *)
+    environment:
+      FUNCTION: schedule
+
+  finalise:
+    handler: src/handlers.finalise
+    timeout: 60
+    events:
+      - schedule: cron(0/1 * * * ? *)
+    environment:
+      FUNCTION: finalise
+
+  processEvent:
+    handler: src/handlers.processEvent
+    reservedConcurrency: 5
+    timeout: 60
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          filterPolicy:
+            EventType:
+              - Tournament:Win
+              - Tournament:Entered
+    environment:
+      FUNCTION: processEvent
+
+  saveEntries:
+    handler: src/handlers.saveEntries
+    timeout: 60
+    environment:
+      FUNCTION: saveEntries
+
+  restoreCache:
+    handler: src/handlers.restoreCache
+    timeout: 300
+    environment:
+      FUNCTION: restoreCache
+
+resources:
+  Resources:
+    LeaderboardPrizeSQSQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: leaderboard-prize
+        VisibilityTimeout: 30

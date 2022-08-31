@@ -1,0 +1,32 @@
+{
+  "name": "@testing/handlers",
+  "@feature": "testing",
+  "version": "1.0.0",
+  "description": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "author": "App Tech Development Ltd",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf node_modules & rm -rf .serverless & rm -rf .build & rm -rf .webpack & rm -f package-lock.json",
+    "deploy": "sls deploy",
+    "remove": "sls remove",
+    "package": "sls package"
+  },
+  "dependencies": {
+    "@tcom/platform": "^1.0.0",
+    "faker": "^4.1.0",
+    "serverless-plugin-enabled": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.31",
+    "@types/faker": "^4.1.5",
+    "serverless": "^1.65.0",
+    "serverless-plugin-scripts": "^1.0.2",
+    "serverless-webpack": "^5.3.1",
+    "ts-loader": "^7.0.2",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1",
+    "webpack-filter-warnings-plugin": "^1.2.1"
+  }
+}

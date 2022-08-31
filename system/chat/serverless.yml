@@ -1,0 +1,138 @@
+service:
+  name: system-chat
+  enabled: ${self:custom.brand.features.chat, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+  - serverless-step-functions
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  timeout: 30
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  onUserCreated:
+    handler: src/handlers.onUserCreated
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:Created
+    environment:
+      FUNCTION: onUserCreated
+
+  onUserUpdated:
+    handler: src/handlers.onUserUpdated
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:Updated
+    environment:
+      FUNCTION: onUserUpdated
+
+  onUserLevelChanged:
+    handler: src/handlers.onUserLevelChanged
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:LevelChanged
+    environment:
+      FUNCTION: onUserLevelChanged
+
+  onTournamentCreated:
+    handler: src/handlers.onTournamentCreated
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Created
+    environment:
+      FUNCTION: onTournamentCreated
+
+  onTournamentComplete:
+    handler: src/handlers.onTournamentComplete
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Complete
+    environment:
+      FUNCTION: onTournamentComplete
+
+  freezeChannel:
+    handler: src/handlers.freezeChannel
+    environment:
+      FUNCTION: freezeChannel
+
+  # onTournamentEntered:
+  #   handler: src/handlers.onTournamentEntered
+  #   events:
+  #     - sns:
+  #         arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+  #         displayName: "Platform Event Topic"
+  #         filterPolicy:
+  #           EventType:
+  #             - Tournament:Entered
+
+  # onTournamentLeft:
+  #   handler: src/handlers.onTournamentLeft
+  #   events:
+  #     - sns:
+  #         arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+  #         displayName: "Platform Event Topic"
+  #         filterPolicy:
+  #           EventType:
+  #             - Tournament:Left
+
+stepFunctions:
+  stateMachines:
+    scheduleChannelFreeze:
+      name: scheduleChannelFreeze
+      definition:
+        Comment: "Executes a lambda that freezes a channel after a set time"
+        StartAt: Schedule
+        States:
+          Schedule:
+            Type: Wait
+            SecondsPath: "$.delay"
+            Next: FreezeChannel
+          FreezeChannel:
+            Type: Task
+            Resource: "arn:aws:lambda:${self:provider.region}:${self:custom.common.aws.accountId}:function:${self:service}-${opt:stage}-freezeChannel"
+            End: true

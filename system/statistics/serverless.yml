@@ -1,0 +1,75 @@
+service:
+  name: system-statistics
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  generateDailyStatistics:
+    timeout: 600
+    handler: src/handlers.generateDailyStatistics
+    events:
+      - schedule: cron(5 * * * ? *)
+    environment:
+      FUNCTION: generateDailyStatistics
+  generateHourlyStatistics:
+    timeout: 900
+    handler: src/handlers.generateHourlyStatistics
+    events:
+      - schedule: cron(5 * * * ? *)
+    environment:
+      FUNCTION: generateHourlyStatistics
+  generateTopWinners:
+    timeout: 900
+    handler: src/handlers.generateTopWinners
+    events:
+      - schedule: cron(*/15 * * * ? *)
+    environment:
+      FUNCTION: generateTopWinners
+  generateTopWinners30Days:
+    timeout: 900
+    handler: src/handlers.generateTopWinners30Days
+    events:
+      - schedule: cron(*/15 * * * ? *)
+    environment:
+      FUNCTION: generateTopWinners30Days
+  generateTotals:
+    timeout: 900
+    handler: src/handlers.generateTotals
+    events:
+      - schedule: cron(*/15 * * * ? *)
+    environment:
+      FUNCTION: generateTotals
+  generateBigWins:
+    timeout: 900
+    handler: src/handlers.generateBigWins
+    events:
+      - schedule: cron(0 5 * * ? *)
+    environment:
+      FUNCTION: generateBigWins

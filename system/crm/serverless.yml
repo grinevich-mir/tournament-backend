@@ -1,0 +1,266 @@
+service:
+  name: system-crm
+  enabled: ${self:custom.brand.features.crm, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  onUserCreated:
+    handler: src/handlers.onUserCreated
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:Created
+    environment:
+      FUNCTION: onUserCreated
+
+  onUserUpdated:
+    handler: src/handlers.onUserUpdated
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:Updated
+    environment:
+      FUNCTION: onUserUpdated
+
+  onUserProfileUpdated:
+    handler: src/handlers.onUserProfileUpdated
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - UserProfile:Updated
+    environment:
+      FUNCTION: onUserProfileUpdated
+
+  onUserLevelChanged:
+    handler: src/handlers.onUserLevelChanged
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:LevelChanged
+    environment:
+      FUNCTION: onUserLevelChanged
+
+  onUserNotificationSettingChanged:
+    handler: src/handlers.onUserNotificationSettingChanged
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - User:NotificationSettingChanged
+    environment:
+      FUNCTION: onUserNotificationSettingChanged
+
+  onSubscriptionStatusChanged:
+    handler: src/handlers.onSubscriptionStatusChanged
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Subscription:StatusChanged
+    environment:
+      FUNCTION: onSubscriptionStatusChanged
+
+  onSubscriptionRenewed:
+    handler: src/handlers.onSubscriptionRenewed
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Subscription:Renewed
+    environment:
+      FUNCTION: onSubscriptionRenewed
+
+  onTournamentEntered:
+    handler: src/handlers.onTournamentEntered
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Entered
+    environment:
+      FUNCTION: onTournamentEntered
+
+  onTournamentWin:
+    handler: src/handlers.onTournamentWin
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Win
+    environment:
+      FUNCTION: onTournamentWin
+
+  onTournamentJackpotWin:
+    handler: src/handlers.onTournamentJackpotWin
+    timeout: 30
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:JackpotWin
+    environment:
+      FUNCTION: onTournamentJackpotWin
+
+  onTournamentResult:
+    handler: src/handlers.onTournamentResult
+    timeout: 900
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Result
+    environment:
+      FUNCTION: onTournamentResult
+
+  onUpgradeCodeProcessed:
+    handler: src/handlers.onUpgradeCodeProcessed
+    timeout: 60
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - UpgradeCode:Processed
+    environment:
+      FUNCTION: onUpgradeCodeProcessed
+
+  onOrderPaid:
+    handler: src/handlers.onOrderPaid
+    timeout: 60
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Order:StatusChanged
+            From:
+              - PendingPayment
+            To:
+              - Paid
+    environment:
+      FUNCTION: onOrderPaid
+
+  onOrderComplete:
+    handler: src/handlers.onOrderComplete
+    timeout: 60
+    reservedConcurrency: 2
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Order:StatusChanged
+            To:
+              - Complete
+    environment:
+      FUNCTION: onOrderComplete
+
+  onEmailBounce:
+    handler: src/handlers.onEmailBounce
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:bounces
+    environment:
+      FUNCTION: onEmailBounce
+
+  onEmailComplaint:
+    handler: src/handlers.onEmailComplaint
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:complaints
+    environment:
+      FUNCTION: onEmailComplaint
+
+  templateTest:
+    handler: src/handlers.templateTest
+    timeout: 60
+    environment:
+      FUNCTION: templateTest
+
+  importContacts:
+    handler: src/handlers.importContacts
+    timeout: 300
+    environment:
+      FUNCTION: importContacts

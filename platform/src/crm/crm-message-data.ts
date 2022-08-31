@@ -1,0 +1,1 @@
+export type CRMMessageData = { [key: string]: (string | number | Date) | (string[] | number | Date) };

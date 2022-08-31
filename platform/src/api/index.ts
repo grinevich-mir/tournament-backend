@@ -1,0 +1,12 @@
+export * from './api-initializer';
+export * from './api-request';
+export * from './decorators';
+export * from './controller';
+export * from './client-controller';
+export * from './admin-controller';
+export * from './user-api-request';
+export * from './api-user';
+export * from './admin-user';
+export * from './idempotency';
+export * from './result';
+export { ValidationService, TsoaRoute, FieldErrors, ValidateError } from 'tsoa/dist/routeGeneration/templateHelpers';

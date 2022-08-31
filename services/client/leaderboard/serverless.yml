@@ -1,0 +1,45 @@
+service: 
+  name: service-client-leaderboard
+  enabled: ${self:custom.brand.features.leaderboards, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-api-compression
+  - serverless-webpack
+  - serverless-domain-manager
+  - serverless-offline
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../../serverless/iam-role.yml):statements}
+  environment: ${file(../../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../../brands.json):${opt:brand}}
+  common: ${file(../../../serverless/common.yml)}
+  customDomain:
+    basePath: leaderboard
+    domainName: api.${self:custom.common.domain}
+  webpack:
+    includeModules: true
+  serverless-offline:
+    port: 3000
+  contentCompression: 100
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  app: ${file(../../serverless/api.yml):appFunction}

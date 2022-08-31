@@ -1,0 +1,13 @@
+{
+  "name": "serverless-plugin-enabled",
+  "version": "1.0.0",
+  "description": "Enable/disable a service or function",
+  "main": "index.js",
+  "author": "Chris Kitch",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "bluebird": "^3.7.2"
+  },
+  "devDependencies": {}
+}

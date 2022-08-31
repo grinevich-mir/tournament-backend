@@ -1,0 +1,51 @@
+service: 
+  name: service-integration-unipaas
+  enabled: ${self:custom.brand.integrations.unipaas, "true"}
+  
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-domain-manager
+  - serverless-offline
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../../serverless/iam-role.yml):statements}
+  environment: ${file(../../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../../brands.json):${opt:brand}}
+  common: ${file(../../../serverless/common.yml)}
+  customDomain:
+    basePath: unipaas
+    domainName: integrations.${self:custom.common.domain}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  authorization:
+    handler: src/handlers.processAuthorization
+    events:
+      - http:
+          path: authorization
+          method: POST
+          integration: LAMBDA-PROXY
+          cors: true
+    environment:
+      FUNCTION: authorization

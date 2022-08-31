@@ -1,0 +1,85 @@
+service:
+  name: system-user
+  enabled: ${self:custom.brand.features.users, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  # User Stats
+  statsOnTournamentEntered:
+    handler: src/stats/handlers.onTournamentEntered
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Entered
+    environment:
+      FUNCTION: statsOnTournamentEntered
+
+  # User Logs
+  processUserLogMessages:
+    handler: src/logging/handlers.processUserLogMessages
+    reservedConcurrency: 1
+    timeout: 30
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [UserLogSQSQueue, Arn]
+          batchSize: 10
+    environment:
+      FUNCTION: processUserLogMessages
+
+  # Geo IP
+  updateGeoIpData:
+    handler: src/geoip/handlers.updateGeoIpData
+    reservedConcurrency: 1
+    timeout: 300
+    environment:
+      FUNCTION: updateGeoIpData
+
+  # Utilities
+  refreshDisplayNameCache:
+    handler: src/utility/handlers.refreshDisplayNameCache
+    reservedConcurrency: 1
+    timeout: 300
+    environment:
+      FUNCTION: refreshDisplayNameCache
+
+resources:
+  Resources:
+    UserLogSQSQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+          QueueName: user-log
+          VisibilityTimeout: 30

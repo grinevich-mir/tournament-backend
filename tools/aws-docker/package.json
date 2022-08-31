@@ -1,0 +1,22 @@
+{
+  "name": "@tools/aws-docker",
+  "version": "1.0.0",
+  "description": "Pushes docker containers to AWS repo",
+  "license": "UNLICENSED",
+  "private": true,
+  "bin": {
+    "aws-docker": "cli.js"
+  },
+  "main": "cli.js",
+  "dependencies": {
+    "@tools/common": "^1.0.0",
+    "aws-sdk": "^2.711.0",
+    "colog": "^1.0.4",
+    "commander": "^3.0.1",
+    "find-up": "^4.1.0",
+    "load-json-file": "^6.2.0",
+    "ora": "^3.4.0",
+    "shelljs": "^0.8.3"
+  },
+  "devDependencies": {}
+}

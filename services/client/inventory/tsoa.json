@@ -1,0 +1,30 @@
+{
+    "entryFile": "src/handler.ts",
+    "noImplicitAdditionalProperties": "silently-remove-extras",
+    "spec": {
+        "specVersion": 3,
+        "name": "Inventory API",
+        "outputDirectory": ".",
+        "host": "{{DOMAIN}}",
+        "schemes": [
+            "https"
+        ],
+        "securityDefinitions": {
+            "cognito": {
+                "type": "oauth2",
+                "authorizationUrl": "https://{{BRAND}}-{{STAGE}}.auth.{{REGION}}.amazoncognito.com/login",
+                "flow": "implicit",
+                "scopes": {
+                    "openid": "Grant access to user",
+                    "email": "The users email address"
+                }
+            }
+        }
+    },
+    "routes": {
+        "basePath": "/",
+        "routesDir": "src",
+        "middleware": "express",
+        "middlewareTemplate": "../../templates/routes.hbs"
+    }
+}

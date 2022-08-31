@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+
+<body>
+    <img src="https://content.tournament.prod.tgaming.io/email/tournament/v3/tournament_logo.png" width="250" />
+    <h1>Daily Report for {{date}}</h1>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">New Users</th>
+            <td>{{usersNew}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Total Users</th>
+            <td>{{usersCount}}</td>
+        </tr>
+        <tr>
+        <th style="text-align: left;">Jackpot Payouts (USD)</th>
+            <td>{{jackpotPayout}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Prize Payouts (USD)</th>
+            <td>{{prizePayoutBase}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Revenue</th>
+            <td>{{revenue}}</td>
+        </tr>
+    </table>
+    <hr />
+    <h3>Purchases</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">Count</th>
+            <td>{{purchaseCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Users</th>
+            <td>{{purchaseUserCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">First Time Users&#185;</th>
+            <td>{{purchaseFirstTimeUserCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">First Time Conversion</th>
+            <td>{{purchaseFirstTimeConversion}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">First Time Revenue</th>
+            <td>{{purchaseFirstTimeRevenue}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">First Time Revenue for Day</th>
+            <td>{{purchaseFirstTimeRevenueInPeriod}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">New Users&#178;</th>
+            <td>{{purchaseNewUserCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">New User Conversion</th>
+            <td>{{purchaseNewUserConversion}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Revenue from New Users</th>
+            <td>{{purchaseNewUserRevenue}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Existing Users</th>
+            <td>{{purchaseExistingUserCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Revenue from Existing Users</th>
+            <td>{{purchaseExistingUserRevenue}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Average Revenue</th>
+            <td>{{purchaseAverageRevenue}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Average User Revenue</th>
+            <td>{{purchaseUserAverageRevenue}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Diamonds</th>
+            <td>{{ordersDiamonds}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Revenue</th>
+            <td>{{purchaseRevenue}}</td>
+        </tr>
+    </table>
+    <p style="font-size: 13px;">
+        <b>&#185; First Time Users</b>: Those who have purchased for the first time irrespective of when they registered.<br />
+        <b>&#178; New Users</b>: Those who have registered and purchased on this day.
+    </p>
+    <h4>Payment Declines</h4>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">Count</th>
+            <td>{{purchaseDeclinedCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Users</th>
+            <td>{{purchaseDeclinedUserCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">New Users</th>
+            <td>{{purchaseDeclinedNewUserCount}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Existing Users</th>
+            <td>{{purchaseDeclinedExistingUserCount}}</td>
+        </tr>
+    </table>
+    <hr />
+    <h3>Tournaments</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">Users</th>
+            <td>{{tournamentUsers}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">New Users</th>
+            <td>{{tournamentNewUsers}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Existing Users</th>
+            <td>{{tournamentExistingUsers}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Entries</th>
+            <td>{{tournamentEntries}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Attempts</th>
+            <td>{{tournamentEntriesAllocations}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Diamonds Spent</th>
+            <td>{{tournamentEntriesDiamondsSpent}}</td>
+        </tr>
+    </table>
+    <!--<hr />
+    <h3>Orders</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">Created</th>
+            <td>{{ordersCreated}} by {{ordersCreatedUsers}} user(s) ({{ordersCreatedNewUsers}} new / {{ordersCreatedExistingUsers}} existing)</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Completed</th>
+            <td>{{ordersCompleted}} by {{ordersCompletedUsers}} user(s) ({{ordersCompletedNewUsers}} new / {{ordersCompletedExistingUsers}} existing)</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Diamonds</th>
+            <td>{{ordersDiamonds}}</td>
+        </tr>
+    </table>
+    <hr />
+    <h3>Jackpots</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">Payouts Count</th>
+            <td>{{jackpotPayoutCount}}</td>
+        </tr>
+    </table>
+    <hr />
+    <h3>Subscriptions</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">New Subscriptions</th>
+            <td>{{subscriptionsNew}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Renewed Subscriptions</th>
+            <td>{{subscriptionsRenewed}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Cancelled Subscriptions</th>
+            <td>{{subscriptionsCancelled}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">New Subscriptions Revenue</th>
+            <td>{{subscriptionsNewRevenue}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Renewed Subscriptions Revenue</th>
+            <td>{{subscriptionsRenewedRevenue}}</td>
+        </tr>
+    </table>-->
+    <!--<table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;width:500px">
+        <tr>
+            <th style="text-align: left;">Current Total Active Subscriptions</th>
+            <td>{{subscriptionsActiveTotal}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Estimated Montly Revenue*</th>
+            <td>{{subscriptionEstimatedMonthlyRevenue}}</td>
+        </tr>
+    </table>
+    </p>
+    <p>* Estimated Montly Revenue is a simple sum of the current active subscriptions. It assumes all subs are monthly, and that the billing cycles are consistent. </p>-->
+</body>
+
+</html>

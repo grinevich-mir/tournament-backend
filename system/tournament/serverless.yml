@@ -1,0 +1,260 @@
+service:
+  name: system-tournament
+  enabled: ${self:custom.brand.features.tournaments, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-step-functions
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  refreshCache:
+    handler: src/handlers.refreshCache
+    timeout: 30
+    environment:
+      FUNCTION: refreshCache
+
+  restoreEntriesCache:
+    handler: src/handlers.restoreEntriesCache
+    timeout: 300
+    environment:
+      FUNCTION: restoreEntriesCache
+
+  schedule:
+    handler: src/handlers.schedule
+    timeout: 120
+    events:
+      - schedule: rate(1 minute)
+    environment:
+      FUNCTION: schedule
+
+  launch:
+    handler: src/handlers.launch
+    timeout: 120
+    events:
+      - schedule: rate(1 minute)
+    environment:
+      FUNCTION: launch
+
+  onComplete:
+    handler: src/handlers.onComplete
+    reservedConcurrency: 5
+    timeout: 300
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          filterPolicy:
+            EventType:
+              - Tournament:Complete
+    environment:
+      FUNCTION: onComplete
+
+  onWin:
+    handler: src/handlers.onWin
+    reservedConcurrency: 2
+    timeout: 60
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          filterPolicy:
+            EventType:
+              - Tournament:Win
+    environment:
+      FUNCTION: onWin
+
+  onTaskEnded:
+    handler: src/handlers.onTaskEnded
+    environment:
+      FUNCTION: onTaskEnded
+    events:
+      - cloudwatchEvent:
+          event:
+            source:
+              - aws.ecs
+            detail-type:
+              - ECS Task State Change
+            detail:
+              clusterArn:
+                - arn:aws:ecs:${self:provider.region}:${self:custom.common.aws.accountId}:cluster/tournament-cluster
+              lastStatus:
+                - STOPPED
+              stoppedReason:
+                - Essential container in task exited
+                # - Task stopped by user
+
+  runtimeAction:
+    handler: src/handlers.runtimeAction
+    timeout: 60
+    environment:
+      FUNCTION: runtimeAction
+
+  refund:
+    handler: src/handlers.refund
+    timeout: 600
+    environment:
+      FUNCTION: refund
+    
+  onTournamentUpdated:
+    handler: src/handlers.onTournamentUpdated
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Updated
+    environment:
+      FUNCTION: onTournamentUpdated
+
+stepFunctions:
+  stateMachines:
+    runTournament:
+      name: runTournament
+      definition:
+        Comment: "Orchestrates the runtime of a tournament"
+        StartAt: Launch
+        States:
+          Launch:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: 
+              FunctionName: "arn:aws:lambda:${self:provider.region}:${self:custom.common.aws.accountId}:function:${self:service}-${opt:stage}-runtimeAction"
+              Payload:
+                executionName.$: "$$.Execution.Name"
+                tournamentId.$: "$.tournamentId"
+                action: "Launch"
+            OutputPath: "$.Payload"
+            Next: WaitForStart
+          WaitForStart:
+            Type: Wait
+            TimestampPath: "$.startTime"
+            Next: Start
+          Start:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: 
+              FunctionName: "arn:aws:lambda:${self:provider.region}:${self:custom.common.aws.accountId}:function:${self:service}-${opt:stage}-runtimeAction"
+              Payload:
+                executionName.$: "$$.Execution.Name"
+                tournamentId.$: "$.tournamentId"
+                startTime.$: "$.startTime"
+                endTime.$: "$.endTime"
+                action: "Start"
+            OutputPath: "$.Payload"
+            Next: WaitForEnd
+          WaitForEnd:
+            Type: Wait
+            TimestampPath: "$.endTime"
+            Next: Finalise
+          Finalise:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: 
+              FunctionName: "arn:aws:lambda:${self:provider.region}:${self:custom.common.aws.accountId}:function:${self:service}-${opt:stage}-runtimeAction"
+              Payload:
+                executionName.$: "$$.Execution.Name"
+                tournamentId.$: "$.tournamentId"
+                startTime.$: "$.startTime"
+                endTime.$: "$.endTime"
+                action: "Finalise"
+            OutputPath: "$.Payload"
+            Next: EndDelay
+          EndDelay:
+            Type: Wait
+            Seconds: 5
+            Next: End
+          End:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: 
+              FunctionName: "arn:aws:lambda:${self:provider.region}:${self:custom.common.aws.accountId}:function:${self:service}-${opt:stage}-runtimeAction"
+              Payload:
+                executionName.$: "$$.Execution.Name"
+                tournamentId.$: "$.tournamentId"
+                startTime.$: "$.startTime"
+                endTime.$: "$.endTime"
+                action: "End"
+            OutputPath: "$.Payload"
+            End: true
+      loggingConfig:
+        level: ERROR
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [RunTournamentLogGroup, Arn]
+    refundTournament:
+      name: refundTournament
+      definition:
+        Comment: "Refunds tournament entry costs"
+        StartAt: RefundBatch
+        States:
+          RefundBatch:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: 
+              FunctionName: "arn:aws:lambda:${self:provider.region}:${self:custom.common.aws.accountId}:function:${self:service}-${opt:stage}-refund"
+              Payload:
+                tournamentId.$: "$.tournamentId"
+                processed.$: "$.processed"
+            OutputPath: "$.Payload"
+            Next: CheckComplete
+            Retry:
+              - ErrorEquals:
+                - States.ALL
+                IntervalSeconds: 1
+                MaxAttempts: 5
+                BackoffRate: 2
+          CheckComplete:
+            Type: Choice
+            Choices:
+              - Variable: "$.complete"
+                BooleanEquals: true
+                Next: Complete
+              - Variable: "$.complete"
+                BooleanEquals: false
+                Next: RefundBatch
+          Complete:
+            Type: Succeed
+      loggingConfig:
+        level: ALL
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [RefundTournamentLogGroup, Arn]
+
+
+
+resources:
+  Resources:
+    RunTournamentLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: "/aws/stepFunctions/runTournament"
+        RetentionInDays: 30
+    RefundTournamentLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: "/aws/stepFunctions/refundTournament"
+        RetentionInDays: 30

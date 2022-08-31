@@ -1,0 +1,82 @@
+statements:
+  - Effect: "Allow"
+    Action:
+      - "ssm:GetParameter"
+      - "ssm:GetParameters"
+    Resource:
+      - "arn:aws:ssm:${self:provider.region}:${self:custom.common.aws.accountId}:parameter/${self:provider.stage}/*"
+  - Effect: Allow
+    Action:
+      - kms:Decrypt
+    Resource:
+      - "arn:aws:kms:${self:provider.region}:${self:custom.common.aws.accountId}:key/alias/aws/ssm"
+  - Effect: "Allow"
+    Action:
+      - "rds-db:connect"
+    Resource:
+      - "arn:aws:rds-db:${self:provider.region}:${self:custom.common.aws.accountId}:dbuser:${ssm:/${self:provider.stage}/rds/global/us-east-1/cluster_id}/api_lambda"
+  - Effect: Allow
+    Action:
+      - lambda:InvokeFunction
+    Resource:
+      - "*"
+  - Effect: "Allow"
+    Action: "sns:Publish"
+    Resource:
+      - "arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:websocket"
+      - "arn:aws:sns:*:${self:custom.common.aws.accountId}:platform-event"
+  - Effect: "Allow"
+    Action:
+      - "s3:put*"
+      - "s3:headObject"
+      - "s3:GetObject"
+    Resource:
+      - "arn:aws:s3:::io.tgaming.${self:provider.stage}.*.players/*"
+  - Effect: "Allow"
+    Action:
+      - "sqs:SendMessage"
+    Resource:
+      - "arn:aws:sqs:*:${self:custom.common.aws.accountId}:*"
+  - Effect: Allow
+    Action:
+      - "rekognition:DetectModerationLabels"
+    Resource:
+      - "*"
+  - Effect: "Allow"
+    Action:
+      - "s3:putObject"
+      - "s3:deleteObject"
+    Resource:
+      - "arn:aws:s3:::origin.content.${self:custom.common.domain}/avatars/custom/*"
+  - Effect: "Allow"
+    Action:
+      - "ecs:DescribeTasks"
+    Resource:
+      - "arn:aws:ecs:${self:provider.region}:${self:custom.common.aws.accountId}:task/*"
+  - Effect: "Allow"
+    Action:
+      - "mobiletargeting:SendUsersMessages"
+    Resource:
+      - "arn:aws:mobiletargeting:${self:provider.region}:${self:custom.common.aws.accountId}:apps/*"
+  - Effect: "Allow"
+    Action:
+      - "cognito-idp:ListUsers"
+      - "cognito-idp:AdminEnableUser"
+      - "cognito-idp:AdminDisableUser"
+      - "cognito-idp:AdminGetUser"
+      - "cognito-idp:AdminConfirmSignUp"
+      - "cognito-idp:AdminDeleteUser"
+    Resource:
+      - "arn:aws:cognito-idp:*:${self:custom.common.aws.accountId}:userpool/*"
+  - Effect: "Allow"
+    Action:
+      - "states:StartExecution"
+      - "states:StopExecution"
+      - "states:DescribeExecution"
+    Resource:
+      - "arn:aws:states:*:${self:custom.common.aws.accountId}:*"
+  - Effect: "Allow"
+    Action:
+      - "ecs:StopTask"
+    Resource:
+      - "arn:aws:ecs:${self:provider.region}:${self:custom.common.aws.accountId}:task/tournament-cluster/*"

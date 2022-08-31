@@ -1,0 +1,51 @@
+{
+    "extends": [
+      "tslint:recommended", 
+      "tslint-no-unused-expression-chai"
+    ],
+    "defaultSeverity": "error",
+    "rules": {
+      "array-type": false,
+      "arrow-parens": false,
+      "interface-name": false,
+      "no-empty-interface": false,
+      "max-classes-per-file": false,
+      "max-line-length": [true, 280],
+      "member-access": true,
+      "member-ordering": [
+        true,
+        {
+          "order": ["static-field", "instance-field", "static-method", "instance-method"]
+        }
+      ],
+      "no-consecutive-blank-lines": false,
+      "no-console": [true, "debug", "info", "time", "timeEnd", "trace"],
+      "no-empty": false,
+      "no-inferrable-types": [true, "ignore-params"],
+      "no-non-null-assertion": true,
+      "no-redundant-jsdoc": true,
+      "no-switch-case-fall-through": true,
+      "no-var-requires": false,
+      "object-literal-key-quotes": [true, "as-needed"],
+      "object-literal-sort-keys": false,
+      "ordered-imports": false,
+      "no-floating-promises": true,
+      "unified-signatures": false,
+      "quotemark": [true, "single"],
+      "trailing-comma": false,
+      "curly": [true, "as-needed"],
+      "eofline": false,
+      "variable-name": [true, "check-format", "allow-leading-underscore", "allow-pascal-case"],
+      "semicolon": [true, "always"],
+      "no-return-await": true
+    },
+    "linterOptions": {
+      "exclude": [
+        "**/*.d.ts",
+        "**/database/migrations/**/*.ts",
+        "**/database/seeds/**/*.ts",
+        "**/node_modules/**/*"
+      ]
+    }
+  }
+  

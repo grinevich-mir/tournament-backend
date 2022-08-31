@@ -1,0 +1,10 @@
+appFunction:
+    handler: src/handler.app
+    timeout: 30
+    events:
+        - http:
+                path: /{proxy+}
+                method: ANY
+        - http:
+                path: /
+                method: ANY

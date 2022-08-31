@@ -1,0 +1,53 @@
+service:
+  name: system-admin
+  enabled: ${self:custom.brand.features.admin, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  # Admin Logs
+  processAdminLogMessages:
+    handler: src/logging/handlers.processAdminLogMessagesHandler
+    reservedConcurrency: 1
+    timeout: 30
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [AdminLogSQSQueue, Arn]
+    environment:
+      FUNCTION: processAdminLogMessagesHandler
+
+resources:
+  Resources:
+    AdminLogSQSQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: admin-log
+        VisibilityTimeout: 30

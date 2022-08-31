@@ -1,0 +1,148 @@
+service:
+  name: system-auth
+  enabled: ${self:custom.brand.features.auth, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    packager: "yarn"
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  # Cognito Auth
+  cognitoPreSignUp:
+    handler: src/cognito/handlers.preSignUp
+    timeout: 60
+    environment:
+      FUNCTION: cognitoPreSignUp
+
+  cognitoPreTokenGeneration:
+    handler: src/cognito/handlers.preTokenGeneration
+    timeout: 60
+    environment:
+      FUNCTION: cognitoPreTokenGeneration
+
+  cognitoCustomMessage:
+    handler: src/cognito/handlers.customMessage
+    timeout: 60
+    environment:
+      FUNCTION: cognitoCustomMessage
+
+  cognitoCustomSmsSender:
+    handler: src/cognito/handlers.customSmsSender
+    timeout: 60
+    environment:
+      FUNCTION: cognitoCustomSmsSender
+
+  cognitoPostConfirmation:
+    handler: src/cognito/handlers.postConfirmation
+    timeout: 60
+    environment:
+      FUNCTION: cognitoPostConfirmation
+
+  cognitoPreAuthentication:
+    handler: src/cognito/handlers.preAuthentication
+    timeout: 60
+    environment:
+      FUNCTION: cognitoPreAuthentication
+
+  cognitoCleanupUnconfirmedUsers:
+    handler: src/cognito/handlers.cleanupUnconfirmedUsers
+    timeout: 60
+    events:
+      - schedule: cron(0 0 * * ? *)
+    environment:
+      FUNCTION: cognitoCleanupUnconfirmedUsers
+    warmup:
+      enabled: false
+
+  cognitoOnUserProfileUpdated:
+    handler: src/cognito/handlers.onUserProfileUpdated
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - UserProfile:Updated
+    environment:
+      FUNCTION: cognitoOnUserProfileUpdated
+
+  cognitoFixConfirmedUsersEmailVerified:
+    handler: src/cognito/handlers.fixConfirmedUsersEmailVerified
+    timeout: 600
+    environment:
+      FUNCTION: cognitoFixConfirmedUsersEmailVerified
+
+resources:
+  Resources:
+    # Cognito Trigger Permissions
+    CognitoPreSignupTriggerInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: CognitoPreSignUpLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        FunctionName: ${self:service}-${self:provider.stage}-cognitoPreSignUp
+    CognitoPreTokenGenerationInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: CognitoPreSignUpLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        FunctionName: ${self:service}-${self:provider.stage}-cognitoPreTokenGeneration
+    CognitoCustomMessageInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: CognitoCustomMessageLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        FunctionName: ${self:service}-${self:provider.stage}-cognitoCustomMessage
+    CognitoCustomSmsSenderInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: CognitoCustomSmsSenderLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        FunctionName: ${self:service}-${self:provider.stage}-cognitoCustomSmsSender
+    CognitoPostConfirmationTriggerInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: CognitoPostConfirmationLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        FunctionName: ${self:service}-${self:provider.stage}-cognitoPostConfirmation
+    CognitoPreAuthenticationTriggerInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: CognitoPreAuthenticationLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        FunctionName: ${self:service}-${self:provider.stage}-cognitoPreAuthentication

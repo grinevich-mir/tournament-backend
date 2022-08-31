@@ -1,0 +1,16 @@
+{
+  "name": "@tools/test-helper",
+  "version": "1.0.0",
+  "main": "cli.js",
+  "author": "Chris Kitch",
+  "license": "MIT",
+  "private": true,
+  "bin": {
+    "test-helper": "./cli.js"
+  },
+  "dependencies": {
+    "commander": "^3.0.1",
+    "fast-glob": "^3.2.2",
+    "load-json-file": "^6.2.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+    "entryFile": "src/handler.ts",
+    "spec": {
+        "name": "Qlik Integration API",
+        "outputDirectory": ".",
+        "host": "api.dev.tgaming.io",
+        "schemes": [
+            "https"
+        ]
+    },
+    "routes": {
+        "basePath": "/",
+        "routesDir": "src",
+        "middleware": "express",
+        "middlewareTemplate": "../../templates/routes.hbs"
+    }
+}

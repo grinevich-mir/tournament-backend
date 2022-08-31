@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+
+<body>
+    <h2>Tangible Prize has been won on tournament "{{leaderboard.tournamentName}}" ({{env.stage}})</h2>
+    <h3>Tournament</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+        <tr>
+            <th style="text-align: left;">ID</th>
+            <td>{{leaderboard.tournamentId}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Name</th>
+            <td>{{leaderboard.tournamentName}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left;">Prize</th>
+            <td>{{leaderboard.prizeName}}</td>
+        </tr>
+    </table>
+    <hr />
+    <h3>Tangible Prize</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Cash Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{leaderboard.prizeName}}</td>
+                <td>{{leaderboard.prizeCashValue}}</td>
+            </tr>
+            <tr>
+                <td><img src="{{leaderboard.prizeImage}}" alt="Prize Image" /></td>
+            </tr>
+        </tbody>
+    </table>
+    <hr />
+    <h3>User</h3>
+    <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{leaderboard.userId}}</td>
+                <td>{{leaderboard.displayName}}</td>
+            </tr>
+        </tbody>
+    </table>
+    <hr />
+</body>
+
+</html>

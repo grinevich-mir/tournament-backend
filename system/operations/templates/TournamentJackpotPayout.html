@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+    <body>
+        <h2>{{jackpotCount}} Jackpot(s) triggered on tournament {{tournament.id}} ({{env.stage}})</h2>
+        <h3>Tournament</h3>
+        <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+            <tr>
+                <th style="text-align: left;">ID</th>
+                <td>{{tournament.id}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Name</th>
+                <td>{{tournament.name}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Player Count</th>
+                <td>{{tournament.playerCount}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Template ID</th>
+                <td>{{tournament.templateId}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Start Time</th>
+                <td>{{tournament.startTime}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Total Payout</th>
+                <td>{{totalPayout}}</td>
+            </tr>
+        </table>
+        <hr/>
+        <h3>Jackpots</h3>
+        {{#each jackpots}}
+        <h4>{{name}} (ID: {{id}})</h4>
+        <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+            <tr>
+                <th style="text-align: left;">Winner Count</th>
+                <td>{{payoutCount}}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Total Payout</th>
+                <td>{{totalPayout}}</td>
+            </tr>
+        </table>
+        <h4>Payouts</h4>
+        <table cellpadding="5" cellspacing="0" border="1" style="border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each payouts}}
+                    <tr>
+                        <td>{{id}}</td>
+                        <td>{{userId}}</td>
+                        <td>{{displayName}}</td>
+                        <td>{{amount}}</td>
+                    </tr>
+                {{/each}}
+            </tbody>
+        </table>
+        {{#unless @last}}<hr/>{{/unless}}
+        {{/each}}
+    </body>
+</html>

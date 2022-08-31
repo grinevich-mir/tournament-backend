@@ -1,0 +1,96 @@
+service:
+  name: system-operations
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+  - '@haftahave/serverless-ses-template'
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  timeout: 30
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+  sesTemplates:
+    addStage: false
+    configFile: './templates/config.js'
+
+functions:
+  templateTest:
+    handler: src/handlers.templateTest
+    environment:
+      FUNCTION: templateTest
+
+  onTournamentResult:
+    handler: src/handlers.onTournamentResult
+    timeout: 30
+    reservedConcurrency: 5
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Result
+            HasJackpotPayouts:
+              - "true"
+    environment:
+      FUNCTION: onTournamentResult
+
+  onTournamentFailed:
+    handler: src/handlers.onTournamentFailed
+    timeout: 30
+    reservedConcurrency: 5
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Tournament:Complete
+    environment:
+      FUNCTION: onTournamentFailed
+
+  onLeaderboardPrizeAwarded:
+    handler: src/handlers.onLeaderboardPrizeAwarded
+    timeout: 30
+    reservedConcurrency: 5
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Leaderboard:PrizeAwarded
+            Type: 
+              - Tangible
+    environment:
+      FUNCTION: onLeaderboardPrizeAwarded
+
+  dailyReport:
+    handler: src/handlers.dailyReport
+    events:
+      - schedule: cron(0 5 * * ? *)
+    environment:
+      FUNCTION: dailyReport

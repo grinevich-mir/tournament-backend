@@ -1,0 +1,31 @@
+{
+  "@feature": "tournaments",
+  "name": "@tcom/tournament-engine-hilo",
+  "version": "1.0.0",
+  "description": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "author": "",
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "clean": "rm -rf .build & rm -rf dist & rm -rf node_modules & rm -f package-lock.json",
+    "deploy": "yarn package && aws-docker push tournament_engine --tag hilo",
+    "package": "yarn build && webpack && docker build --rm -t tournament_engine:hilo .;",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@tcom/platform": "^1.0.0",
+    "@tcom/tournament-engine-core": "^1.0.0",
+    "moment": "^2.27.0",
+    "node-schedule": "^1.3.2"
+  },
+  "devDependencies": {
+    "@tools/aws-docker": "^1.0.0",
+    "@types/node": "^12.7.4",
+    "@types/node-schedule": "^1.2.4",
+    "ts-loader": "^6.0.4",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.7"
+  }
+}

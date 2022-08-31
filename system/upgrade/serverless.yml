@@ -1,0 +1,109 @@
+service:
+  name: system-upgrade
+  enabled: ${self:custom.brand.features.upgrades, "true"}
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+  - serverless-plugin-warmup
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+  warmup: ${self:custom.common.warmup}
+
+functions:
+  onSubscriptionStatusChanged:
+    handler: src/handlers.onSubscriptionStatusChanged
+    timeout: 60
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Subscription:StatusChanged
+    environment:
+      FUNCTION: onSubscriptionStatusChanged
+
+  onSubscriptionRenewed:
+    handler: src/handlers.onSubscriptionRenewed
+    timeout: 60
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Subscription:Renewed
+    environment:
+      FUNCTION: onSubscriptionRenewed
+
+  onSubscriptionTierChanged:
+    handler: src/handlers.onSubscriptionTierChanged
+    timeout: 60
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Subscription:TierChanged
+    environment:
+      FUNCTION: onSubscriptionTierChanged
+
+  activateScheduled:
+    handler: src/handlers.activateScheduled
+    timeout: 60
+    events:
+      - schedule: rate(1 minute)
+    regions:
+      - ${self:custom.common.defaultRegion}
+    warmup:
+      enabled: false
+    environment:
+      FUNCTION: activateScheduled
+
+  expireScheduled:
+    handler: src/handlers.expireScheduled
+    timeout: 60
+    events:
+      - schedule: rate(1 minute)
+    regions:
+      - ${self:custom.common.defaultRegion}
+    warmup:
+      enabled: false
+    environment:
+      FUNCTION: expireScheduled
+
+  deleteUnusedCodes:
+    handler: src/handlers.deleteUnusedCodes
+    timeout: 60
+    events:
+      - schedule: rate(1 hour)
+    regions:
+      - ${self:custom.common.defaultRegion}
+    warmup:
+      enabled: false
+    environment:
+      FUNCTION: deleteUnusedCodes

@@ -1,0 +1,40 @@
+import { UserType } from './user-type';
+import { UserRegistrationType } from './user-registration-type';
+import { UserVerificationStatus } from './user-verification-status';
+import { UserAddressStatus } from './user-address-status';
+import { UserAvatar } from './user-avatar';
+import { UserMetadata } from './user-metadata';
+import { UserProfile } from './user-profile';
+
+export interface User {
+    id: number;
+    secureId: string;
+    skinId: string;
+    displayName?: string;
+    type: UserType;
+    regType: UserRegistrationType;
+    avatar?: UserAvatar;
+    customAvatarId?: string;
+    chatToken: string;
+    level: number;
+    regCountry?: string;
+    regState?: string;
+    country?: string;
+    currencyCode?: string;
+    identityStatus: UserVerificationStatus;
+    addressStatus: UserAddressStatus;
+    ipAddress?: string;
+    enabled: boolean;
+    lastPlayed?: Date;
+    consecutivePlayedDays: number;
+    bTag?: string;
+    subscribed: boolean;
+    subscribing: boolean;
+    hasPaymentMethod: boolean;
+    createTime: Date;
+    updateTime: Date;
+    metadata?: UserMetadata;
+    clickId?: string;
+    fraudulent: boolean;
+    profile?: UserProfile;
+}

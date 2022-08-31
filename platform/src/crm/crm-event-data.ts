@@ -1,0 +1,1 @@
+export type CRMEventData = { [key: string]: string | number | boolean | undefined };

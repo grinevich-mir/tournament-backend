@@ -1,0 +1,1 @@
+export * from './playtech-game-url-resolver';

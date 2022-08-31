@@ -1,0 +1,89 @@
+service:
+  name: system-slack
+
+plugins:
+  - serverless-plugin-enabled
+  - serverless-webpack
+  - serverless-plugin-scripts
+
+provider:
+  versionFunctions: false
+  name: aws
+  runtime: nodejs14.x
+  memorySize: ${self:custom.common.provider.memorySize}
+  region: ${opt:region, "${self:custom.common.defaultRegion}"}
+  stage: ${opt:stage}
+  logRetentionInDays: ${self:custom.common.logRetention}
+  iamRoleStatements: ${file(../serverless/iam-role.yml):statements}
+  environment: ${file(../../serverless/environment.yml)}
+  profile: ${self:custom.common.aws.profile}
+  usagePlan: ${self:custom.common.provider.usagePlan}
+  vpc: ${self:custom.common.provider.vpc}
+
+custom:
+  brand: ${file(../../brands.json):${opt:brand}}
+  common: ${file(../../serverless/common.yml)}
+  webpack:
+    includeModules: true
+  scripts:
+    hooks:
+      "package:initialize": yarn build
+
+functions:
+  onWithdrawalRequestAdded:
+    handler: src/handlers.onWithdrawalRequestAdded
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Banking:WithdrawalRequest:Added
+    environment:
+      FUNCTION: onWithdrawalRequestAdded
+
+  onWithdrawalRequestStatusChanged:
+    handler: src/handlers.onWithdrawalRequestStatusChanged
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Banking:WithdrawalRequest:StatusChanged
+            Status:
+              - Cancelled
+    environment:
+      FUNCTION: onWithdrawalRequestStatusChanged
+
+  onJackpotPaidOut:
+    handler: src/handlers.onJackpotPaidOut
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Jackpot:PaidOut
+    environment:
+      FUNCTION: onJackpotPaidOut
+
+  onSubscriptionStatusChanged:
+    handler: src/handlers.onSubscriptionStatusChanged
+    timeout: 30
+    reservedConcurrency: 1
+    events:
+      - sns:
+          arn: arn:aws:sns:${self:provider.region}:${self:custom.common.aws.accountId}:platform-event
+          displayName: "Platform Event Topic"
+          filterPolicy:
+            EventType:
+              - Subscription:StatusChanged
+    environment:
+      FUNCTION: onSubscriptionStatusChanged

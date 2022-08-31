@@ -1,0 +1,16 @@
+{
+    "name": "@tools/common",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "UNLICENSED",
+    "description": "Common tool stuff",
+    "private": true,
+    "dependencies": {
+        "colog": "^1.0.4",
+        "deepmerge": "^4.2.2",
+        "find-up": "^4.1.0",
+        "lerna": "^3.20.2",
+        "load-json-file": "^6.2.0"
+    },
+    "devDependencies": {}
+}

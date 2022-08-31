@@ -1,0 +1,2109 @@
+######################################################################################################################################################################################
+# !! NOTICE !!                                                                                                                                                                       #
+# This configuration file has been generated with a template, if you need to make changes, edit the config.yml.tpl file and run the 'yarn circle-gen' in the root of the repo.      #
+######################################################################################################################################################################################
+
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: circleci/node:14
+    resource_class: xlarge
+    parameters:
+      persist:
+        type: boolean
+        default: false
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore Yarn Package Cache
+          keys:
+            - yarn-packages-v1-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - yarn-packages-v1-{{ .Branch }}-
+            - yarn-packages-v1-
+      - run:
+          name: Install
+          command: yarn ci
+      - save_cache:
+          name: Save Yarn Package Cache
+          key: yarn-packages-v1-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths:
+            - ~/.cache/yarn
+      - run:
+          name: Lint
+          command: yarn lint
+      - run:
+          name: Build
+          command: yarn build
+      - run:
+          name: Test
+          command: yarn test
+          when: always
+      - run:
+          name: Copy Results
+          command: yarn test-helper copy ~/test-results
+          when: always
+      - store_test_results:
+          path: ~/test-results
+      - store_artifacts:
+          path: ~/test-results
+      - when:
+          condition: << parameters.persist >>
+          steps:
+            - persist_to_workspace:
+                root: .
+                paths:
+                  - .
+  deploy:
+    docker:
+      - image: circleci/node:14
+    parameters:
+      brand:
+        type: string
+      stage:
+        type: string
+      region:
+        type: string
+      location:
+        type: string
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Add AWS credentials
+          command: mkdir ~/.aws && echo -e "[platform-<< parameters.brand >>-<< parameters.stage >>]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\n" > ~/.aws/credentials
+      - run:
+          name: Deploy to << parameters.stage >> in region << parameters.region >>
+          command: yarn --cwd "./<< parameters.location >>" deploy --brand << parameters.brand >> --stage << parameters.stage >> --region << parameters.region >>
+  deploy-docker:
+    docker:
+      - image: circleci/node:14
+    parameters:
+      brand:
+        type: string
+      stage:
+        type: string
+      region:
+        type: string
+      location:
+        type: string
+    steps:
+      - attach_workspace:
+          at: .
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Add AWS credentials
+          command: mkdir ~/.aws && echo -e "[platform-<< parameters.brand >>-<< parameters.stage >>]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\n" > ~/.aws/credentials
+      - run:
+          name: Deploy to << parameters.stage >> in region << parameters.region >>
+          command: yarn --cwd "./<< parameters.location >>" deploy --brand << parameters.brand >> --stage << parameters.stage >> --region << parameters.region >>
+  deploy-docs:
+    docker:
+      - image: circleci/node:14
+    parameters:
+      brand:
+        type: string
+      stage:
+        type: string
+      region:
+        type: string
+      api:
+        type: string
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Add AWS credentials
+          command: mkdir ~/.aws && echo -e "[platform-<< parameters.brand >>-<< parameters.stage >>]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\n" > ~/.aws/credentials
+      - run:
+          name: Deploy API Docs - << parameters.api >>
+          command: cd services/docs && yarn deploy --brand << parameters.brand >> --stage << parameters.stage >> --api << parameters.api >> --region << parameters.region >>
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore:
+                - dev
+                - master
+  build-deploy:
+    jobs:
+      - build:
+          name: build-deploy
+          persist: true
+          filters:
+            branches:
+              only:
+                - dev
+                - master
+
+      # Brand: Tournament
+      # DEPLOY dev - us-east-1
+      # integr-revolver
+      - deploy-docker:
+          name: tournament-deploy-dev-game-revolver-events-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "containers/game/revolver"
+      - deploy:
+          name: tournament-deploy-dev-service-integration-revolver-us-east-1
+          requires:
+            - tournament-deploy-dev-game-revolver-events-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/revolver"
+      # feat-tournaments
+      - deploy-docker:
+          name: tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "containers/tournament/engine/bingo"
+      - deploy-docker:
+          name: tournament-deploy-dev-tournament-engine-blackjack-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "containers/tournament/engine/blackjack"
+      - deploy-docker:
+          name: tournament-deploy-dev-tournament-engine-crash-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "containers/tournament/engine/crash"
+      - deploy-docker:
+          name: tournament-deploy-dev-tournament-engine-hilo-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "containers/tournament/engine/hilo"
+      - deploy-docker:
+          name: tournament-deploy-dev-tournament-engine-slot-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "containers/tournament/engine/slot"
+      - deploy:
+          name: tournament-deploy-dev-service-client-tournament-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/tournament"
+      - deploy:
+          name: tournament-deploy-dev-service-management-tournament-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/tournament"
+      - deploy:
+          name: tournament-deploy-dev-system-tournament-us-east-1
+          requires:
+            - tournament-deploy-dev-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/tournament"
+      # feat-banking
+      - deploy:
+          name: tournament-deploy-dev-service-client-banking-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/banking"
+      - deploy:
+          name: tournament-deploy-dev-service-management-banking-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-banking-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/banking"
+      - deploy:
+          name: tournament-deploy-dev-system-banking-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-banking-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/banking"
+      # feat-coupon
+      - deploy:
+          name: tournament-deploy-dev-service-client-coupon-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/coupon"
+      # feat-games
+      - deploy:
+          name: tournament-deploy-dev-service-client-game-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/game"
+      - deploy:
+          name: tournament-deploy-dev-service-management-game-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-game-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/game"
+      - deploy:
+          name: tournament-deploy-dev-system-game-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-game-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/game"
+      # feat-inventory
+      - deploy:
+          name: tournament-deploy-dev-service-client-inventory-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/inventory"
+      - deploy:
+          name: tournament-deploy-dev-service-management-inventory-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-inventory-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/inventory"
+      - deploy:
+          name: tournament-deploy-dev-system-inventory-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-inventory-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/inventory"
+      # feat-jackpot
+      - deploy:
+          name: tournament-deploy-dev-service-client-jackpot-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/jackpot"
+      - deploy:
+          name: tournament-deploy-dev-system-jackpot-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-jackpot-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/jackpot"
+      # feat-leaderboards
+      - deploy:
+          name: tournament-deploy-dev-service-client-leaderboard-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/leaderboard"
+      - deploy:
+          name: tournament-deploy-dev-service-management-leaderboard-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-leaderboard-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/leaderboard"
+      - deploy:
+          name: tournament-deploy-dev-system-leaderboard-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-leaderboard-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/leaderboard"
+      # feat-notifications
+      - deploy:
+          name: tournament-deploy-dev-service-client-notification-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/notification"
+      - deploy:
+          name: tournament-deploy-dev-system-notification-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-notification-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/notification"
+      # feat-order
+      - deploy:
+          name: tournament-deploy-dev-service-client-order-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/order"
+      - deploy:
+          name: tournament-deploy-dev-service-management-order-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-order-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/order"
+      - deploy:
+          name: tournament-deploy-dev-system-order-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-order-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/order"
+      # feat-payments
+      - deploy:
+          name: tournament-deploy-dev-service-client-payment-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/payment"
+      - deploy:
+          name: tournament-deploy-dev-service-management-payment-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-payment-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/payment"
+      # feat-promo
+      - deploy:
+          name: tournament-deploy-dev-service-client-promo-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/promo"
+      # feat-referrals
+      - deploy:
+          name: tournament-deploy-dev-service-client-referral-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/referral"
+      - deploy:
+          name: tournament-deploy-dev-service-management-referral-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-referral-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/referral"
+      - deploy:
+          name: tournament-deploy-dev-system-referral-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-referral-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/referral"
+      # feat-statistics
+      - deploy:
+          name: tournament-deploy-dev-service-client-statistics-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/statistics"
+      - deploy:
+          name: tournament-deploy-dev-service-management-statistics-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-statistics-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/statistics"
+      - deploy:
+          name: tournament-deploy-dev-system-statistics-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-statistics-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/statistics"
+      # feat-store
+      - deploy:
+          name: tournament-deploy-dev-service-client-store-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/store"
+      - deploy:
+          name: tournament-deploy-dev-service-management-store-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-store-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/store"
+      # feat-upgrades
+      - deploy:
+          name: tournament-deploy-dev-service-client-upgrade-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/upgrade"
+      - deploy:
+          name: tournament-deploy-dev-service-management-upgrade-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-upgrade-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/upgrade"
+      - deploy:
+          name: tournament-deploy-dev-system-upgrade-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-upgrade-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/upgrade"
+      # feat-users
+      - deploy:
+          name: tournament-deploy-dev-service-client-user-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/user"
+      - deploy:
+          name: tournament-deploy-dev-service-management-user-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-user-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/user"
+      - deploy:
+          name: tournament-deploy-dev-system-user-us-east-1
+          requires:
+            - tournament-deploy-dev-service-client-user-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/user"
+      # feat-websockets
+      - deploy:
+          name: tournament-deploy-dev-service-client-websocket-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/client/websocket"
+      # integr-blackjack
+      - deploy:
+          name: tournament-deploy-dev-service-integration-blackjack-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/blackjack"
+      # integr-chargify
+      - deploy:
+          name: tournament-deploy-dev-service-integration-chargify-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/chargify"
+      # integr-crash
+      - deploy:
+          name: tournament-deploy-dev-service-integration-crash-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/crash"
+      # integr-hilo
+      - deploy:
+          name: tournament-deploy-dev-service-integration-hilo-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/hilo"
+      # integr-incomeAccess
+      - deploy:
+          name: tournament-deploy-dev-service-integration-income-access-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/income-access"
+      # integr-lemverify
+      - deploy:
+          name: tournament-deploy-dev-service-integration-lemverify-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/lemverify"
+      # integr-paymentwall
+      - deploy:
+          name: tournament-deploy-dev-service-integration-paymentwall-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/paymentwall"
+      # integr-paypal
+      - deploy:
+          name: tournament-deploy-dev-service-integration-paypal-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/paypal"
+      # integr-qlik
+      - deploy:
+          name: tournament-deploy-dev-service-integration-qlik-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/qlik"
+      # integr-skrill
+      - deploy:
+          name: tournament-deploy-dev-service-integration-skrill-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/skrill"
+      # integr-tambola
+      - deploy:
+          name: tournament-deploy-dev-service-integration-tambola-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/tambola"
+      # integr-trustly
+      - deploy:
+          name: tournament-deploy-dev-service-integration-trustly-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/trustly"
+      # integr-unipaas
+      - deploy:
+          name: tournament-deploy-dev-service-integration-unipaas-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/integration/unipaas"
+      # feat-admin
+      - deploy:
+          name: tournament-deploy-dev-service-management-admin-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/admin"
+      # feat-auth
+      - deploy:
+          name: tournament-deploy-dev-service-management-auth-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/auth"
+      - deploy:
+          name: tournament-deploy-dev-system-auth-us-east-1
+          requires:
+            - tournament-deploy-dev-service-management-auth-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/auth"
+      # feat-coupons
+      - deploy:
+          name: tournament-deploy-dev-service-management-coupon-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/coupon"
+      # feat-integrations
+      - deploy:
+          name: tournament-deploy-dev-service-management-integration-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/integration"
+      # feat-jackpots
+      - deploy:
+          name: tournament-deploy-dev-service-management-jackpot-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/jackpot"
+      # feat-subscriptions
+      - deploy:
+          name: tournament-deploy-dev-service-management-subscription-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/subscription"
+      # feat-verification
+      - deploy:
+          name: tournament-deploy-dev-service-management-verification-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "services/management/verification"
+      # feat-chat
+      - deploy:
+          name: tournament-deploy-dev-system-chat-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/chat"
+      # feat-crm
+      - deploy:
+          name: tournament-deploy-dev-system-crm-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/crm"
+      # feat-operations
+      - deploy:
+          name: tournament-deploy-dev-system-operations-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/operations"
+      # feat-payment
+      - deploy:
+          name: tournament-deploy-dev-system-payment-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/payment"
+      # feat-slack
+      - deploy:
+          name: tournament-deploy-dev-system-slack-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/slack"
+      # feat-utilities
+      - deploy:
+          name: tournament-deploy-dev-system-utility-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "system/utility"
+      # feat-testing
+      - deploy-docker:
+          name: tournament-deploy-dev-testing-bots-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "testing/bots"
+      - deploy:
+          name: tournament-deploy-dev-testing-handlers-us-east-1
+          requires:
+            - tournament-deploy-dev-testing-bots-us-east-1
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          location: "testing/handlers"
+      # Docs
+      - deploy-docs:
+          name: tournament-deploy-mgnt-docs-dev-us-east-1
+          requires:
+              - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          api: management
+      - deploy-docs:
+          name: tournament-deploy-client-docs-dev-us-east-1
+          requires:
+              - build-deploy
+          filters:
+            branches:
+              only: dev
+          context: platform-tournament-dev
+          region: us-east-1
+          brand: tournament
+          stage: dev
+          api: client
+      # DEPLOY prod - us-east-1
+      # integr-revolver
+      - deploy-docker:
+          name: tournament-deploy-prod-game-revolver-events-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "containers/game/revolver"
+      - deploy:
+          name: tournament-deploy-prod-service-integration-revolver-us-east-1
+          requires:
+            - tournament-deploy-prod-game-revolver-events-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/revolver"
+      # feat-tournaments
+      - deploy-docker:
+          name: tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "containers/tournament/engine/bingo"
+      - deploy-docker:
+          name: tournament-deploy-prod-tournament-engine-blackjack-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "containers/tournament/engine/blackjack"
+      - deploy-docker:
+          name: tournament-deploy-prod-tournament-engine-crash-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "containers/tournament/engine/crash"
+      - deploy-docker:
+          name: tournament-deploy-prod-tournament-engine-hilo-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "containers/tournament/engine/hilo"
+      - deploy-docker:
+          name: tournament-deploy-prod-tournament-engine-slot-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "containers/tournament/engine/slot"
+      - deploy:
+          name: tournament-deploy-prod-service-client-tournament-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/tournament"
+      - deploy:
+          name: tournament-deploy-prod-service-management-tournament-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/tournament"
+      - deploy:
+          name: tournament-deploy-prod-system-tournament-us-east-1
+          requires:
+            - tournament-deploy-prod-tournament-engine-bingo-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/tournament"
+      # feat-banking
+      - deploy:
+          name: tournament-deploy-prod-service-client-banking-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/banking"
+      - deploy:
+          name: tournament-deploy-prod-service-management-banking-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-banking-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/banking"
+      - deploy:
+          name: tournament-deploy-prod-system-banking-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-banking-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/banking"
+      # feat-coupon
+      - deploy:
+          name: tournament-deploy-prod-service-client-coupon-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/coupon"
+      # feat-games
+      - deploy:
+          name: tournament-deploy-prod-service-client-game-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/game"
+      - deploy:
+          name: tournament-deploy-prod-service-management-game-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-game-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/game"
+      - deploy:
+          name: tournament-deploy-prod-system-game-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-game-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/game"
+      # feat-inventory
+      - deploy:
+          name: tournament-deploy-prod-service-client-inventory-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/inventory"
+      - deploy:
+          name: tournament-deploy-prod-service-management-inventory-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-inventory-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/inventory"
+      - deploy:
+          name: tournament-deploy-prod-system-inventory-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-inventory-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/inventory"
+      # feat-jackpot
+      - deploy:
+          name: tournament-deploy-prod-service-client-jackpot-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/jackpot"
+      - deploy:
+          name: tournament-deploy-prod-system-jackpot-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-jackpot-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/jackpot"
+      # feat-leaderboards
+      - deploy:
+          name: tournament-deploy-prod-service-client-leaderboard-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/leaderboard"
+      - deploy:
+          name: tournament-deploy-prod-service-management-leaderboard-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-leaderboard-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/leaderboard"
+      - deploy:
+          name: tournament-deploy-prod-system-leaderboard-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-leaderboard-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/leaderboard"
+      # feat-notifications
+      - deploy:
+          name: tournament-deploy-prod-service-client-notification-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/notification"
+      - deploy:
+          name: tournament-deploy-prod-system-notification-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-notification-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/notification"
+      # feat-order
+      - deploy:
+          name: tournament-deploy-prod-service-client-order-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/order"
+      - deploy:
+          name: tournament-deploy-prod-service-management-order-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-order-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/order"
+      - deploy:
+          name: tournament-deploy-prod-system-order-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-order-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/order"
+      # feat-payments
+      - deploy:
+          name: tournament-deploy-prod-service-client-payment-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/payment"
+      - deploy:
+          name: tournament-deploy-prod-service-management-payment-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-payment-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/payment"
+      # feat-promo
+      - deploy:
+          name: tournament-deploy-prod-service-client-promo-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/promo"
+      # feat-referrals
+      - deploy:
+          name: tournament-deploy-prod-service-client-referral-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/referral"
+      - deploy:
+          name: tournament-deploy-prod-service-management-referral-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-referral-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/referral"
+      - deploy:
+          name: tournament-deploy-prod-system-referral-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-referral-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/referral"
+      # feat-statistics
+      - deploy:
+          name: tournament-deploy-prod-service-client-statistics-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/statistics"
+      - deploy:
+          name: tournament-deploy-prod-service-management-statistics-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-statistics-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/statistics"
+      - deploy:
+          name: tournament-deploy-prod-system-statistics-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-statistics-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/statistics"
+      # feat-store
+      - deploy:
+          name: tournament-deploy-prod-service-client-store-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/store"
+      - deploy:
+          name: tournament-deploy-prod-service-management-store-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-store-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/store"
+      # feat-upgrades
+      - deploy:
+          name: tournament-deploy-prod-service-client-upgrade-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/upgrade"
+      - deploy:
+          name: tournament-deploy-prod-service-management-upgrade-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-upgrade-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/upgrade"
+      - deploy:
+          name: tournament-deploy-prod-system-upgrade-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-upgrade-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/upgrade"
+      # feat-users
+      - deploy:
+          name: tournament-deploy-prod-service-client-user-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/user"
+      - deploy:
+          name: tournament-deploy-prod-service-management-user-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-user-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/user"
+      - deploy:
+          name: tournament-deploy-prod-system-user-us-east-1
+          requires:
+            - tournament-deploy-prod-service-client-user-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/user"
+      # feat-websockets
+      - deploy:
+          name: tournament-deploy-prod-service-client-websocket-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/client/websocket"
+      # integr-blackjack
+      - deploy:
+          name: tournament-deploy-prod-service-integration-blackjack-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/blackjack"
+      # integr-chargify
+      - deploy:
+          name: tournament-deploy-prod-service-integration-chargify-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/chargify"
+      # integr-crash
+      - deploy:
+          name: tournament-deploy-prod-service-integration-crash-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/crash"
+      # integr-hilo
+      - deploy:
+          name: tournament-deploy-prod-service-integration-hilo-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/hilo"
+      # integr-incomeAccess
+      - deploy:
+          name: tournament-deploy-prod-service-integration-income-access-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/income-access"
+      # integr-lemverify
+      - deploy:
+          name: tournament-deploy-prod-service-integration-lemverify-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/lemverify"
+      # integr-paymentwall
+      - deploy:
+          name: tournament-deploy-prod-service-integration-paymentwall-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/paymentwall"
+      # integr-paypal
+      - deploy:
+          name: tournament-deploy-prod-service-integration-paypal-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/paypal"
+      # integr-qlik
+      - deploy:
+          name: tournament-deploy-prod-service-integration-qlik-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/qlik"
+      # integr-skrill
+      - deploy:
+          name: tournament-deploy-prod-service-integration-skrill-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/skrill"
+      # integr-tambola
+      - deploy:
+          name: tournament-deploy-prod-service-integration-tambola-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/tambola"
+      # integr-trustly
+      - deploy:
+          name: tournament-deploy-prod-service-integration-trustly-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/trustly"
+      # integr-unipaas
+      - deploy:
+          name: tournament-deploy-prod-service-integration-unipaas-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/integration/unipaas"
+      # feat-admin
+      - deploy:
+          name: tournament-deploy-prod-service-management-admin-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/admin"
+      # feat-auth
+      - deploy:
+          name: tournament-deploy-prod-service-management-auth-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/auth"
+      - deploy:
+          name: tournament-deploy-prod-system-auth-us-east-1
+          requires:
+            - tournament-deploy-prod-service-management-auth-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/auth"
+      # feat-coupons
+      - deploy:
+          name: tournament-deploy-prod-service-management-coupon-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/coupon"
+      # feat-integrations
+      - deploy:
+          name: tournament-deploy-prod-service-management-integration-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/integration"
+      # feat-jackpots
+      - deploy:
+          name: tournament-deploy-prod-service-management-jackpot-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/jackpot"
+      # feat-subscriptions
+      - deploy:
+          name: tournament-deploy-prod-service-management-subscription-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/subscription"
+      # feat-verification
+      - deploy:
+          name: tournament-deploy-prod-service-management-verification-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "services/management/verification"
+      # feat-chat
+      - deploy:
+          name: tournament-deploy-prod-system-chat-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/chat"
+      # feat-crm
+      - deploy:
+          name: tournament-deploy-prod-system-crm-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/crm"
+      # feat-operations
+      - deploy:
+          name: tournament-deploy-prod-system-operations-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/operations"
+      # feat-payment
+      - deploy:
+          name: tournament-deploy-prod-system-payment-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/payment"
+      # feat-slack
+      - deploy:
+          name: tournament-deploy-prod-system-slack-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/slack"
+      # feat-utilities
+      - deploy:
+          name: tournament-deploy-prod-system-utility-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "system/utility"
+      # feat-testing
+      - deploy-docker:
+          name: tournament-deploy-prod-testing-bots-us-east-1
+          requires:
+            - build-deploy
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "testing/bots"
+      - deploy:
+          name: tournament-deploy-prod-testing-handlers-us-east-1
+          requires:
+            - tournament-deploy-prod-testing-bots-us-east-1
+          filters:
+            branches:
+              only: master
+          context: platform-tournament-prod
+          region: us-east-1
+          brand: tournament
+          stage: prod
+          location: "testing/handlers"

@@ -1,0 +1,16 @@
+export enum TransactionPurpose {
+    Deposit = 'Deposit',
+    Withdrawal = 'Withdrawal',
+    BuyIn = 'BuyIn',
+    PayOut = 'PayOut',
+    JackpotPayout = 'JackpotPayout',
+    ReferralPayout = 'ReferralPayout',
+    Adjustment = 'Adjustment',
+    Promotion = 'Promotion',
+    Subscription = 'Subscription',
+    Refund = 'Refund',
+    Purchase = 'Purchase',
+    Consolidate = 'Consolidate',
+    Confiscation = 'Confiscation',
+    Compensation = 'Compensation',
+}
